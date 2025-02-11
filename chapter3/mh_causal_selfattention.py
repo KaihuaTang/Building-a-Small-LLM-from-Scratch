@@ -3,37 +3,39 @@ import torch.nn as nn
 import math
 
 class MultiHeadCausalSelfAttention(nn.Module):
-    def __init__(self, embed_dim, num_heads=8):
+    def __init__(self, input_dim, hidden_dim, num_heads=8):
         """
         简易自注意力层
-        :param embed_dim: 输入/输出的特征维度
+        :param input_dim: 输入维度
+        :param hidden_dim: 隐藏层维度
         :param num_heads: 多头注意力的头数，这里可以指定为8表示单头注意力
         """
         super(MultiHeadCausalSelfAttention, self).__init__()
-        self.embed_dim = embed_dim
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
         self.num_heads = num_heads
         # 将嵌入维度平分到各个头上
         # 注意实际应用中需要确保 embed_dim % num_heads == 0
-        self.head_dim = embed_dim // num_heads
+        self.head_dim = hidden_dim // num_heads
 
         # 定义线性层，用于生成 Q、K、V
-        self.query = nn.Linear(embed_dim, embed_dim)
-        self.key   = nn.Linear(embed_dim, embed_dim)
-        self.value = nn.Linear(embed_dim, embed_dim)
+        self.query = nn.Linear(input_dim, hidden_dim)
+        self.key   = nn.Linear(input_dim, hidden_dim)
+        self.value = nn.Linear(input_dim, hidden_dim)
 
         # 输出变换
-        self.out = nn.Linear(embed_dim, embed_dim)
+        self.out = nn.Linear(hidden_dim, input_dim)
 
     def forward(self, x, mask=None):
         """
-        :param x: 输入张量，形状 [batch_size, seq_len, embed_dim]
+        :param x: 输入张量，形状 [batch_size, seq_len, input_dim]
         :param mask: 可选的掩码（mask），形状与注意力矩阵匹配，如 [batch_size, 1, seq_len, seq_len]
-        :return: 自注意力计算后的输出，形状 [batch_size, seq_len, embed_dim]
+        :return: 自注意力计算后的输出，形状 [batch_size, seq_len, input_dim]
         """
-        batch_size, seq_len, embed_dim = x.shape
+        batch_size, seq_len, input_dim = x.shape
 
         # 线性变换得到 Q, K, V
-        # 形状: [batch_size, seq_len, embed_dim]
+        # 形状: [batch_size, seq_len, input_dim]
         Q = self.query(x)
         K = self.key(x)
         V = self.value(x)
@@ -73,8 +75,8 @@ class MultiHeadCausalSelfAttention(nn.Module):
         # [batch_size, num_heads, seq_len, head_dim] -> [batch_size, seq_len, num_heads, head_dim]
         attn_output = attn_output.permute(0, 2, 1, 3).contiguous()
         # 拼接头部维度
-        # => [batch_size, seq_len, embed_dim]
-        attn_output = attn_output.view(batch_size, seq_len, embed_dim)
+        # => [batch_size, seq_len, input_dim]
+        attn_output = attn_output.view(batch_size, seq_len, input_dim)
 
         # 输出层
         output = self.out(attn_output)
@@ -85,15 +87,16 @@ if __name__ == "__main__":
     # 测试代码
     batch_size = 1
     seq_len = 5
-    embed_dim = 256
+    input_dim = 256
+    hidden_dim = 256
     num_heads = 2
-    x = torch.randn(batch_size, seq_len, embed_dim)
+    x = torch.randn(batch_size, seq_len, input_dim)
     causal_mask = torch.triu(torch.ones(5, 5, device=x.device, dtype=torch.float),
                             diagonal=1
                         )
     causal_mask = causal_mask.masked_fill(causal_mask == 1, float('-inf'))
     
-    attention = MultiHeadCausalSelfAttention(embed_dim, num_heads=num_heads)
+    attention = MultiHeadCausalSelfAttention(input_dim, hidden_dim, num_heads=num_heads)
     out = attention(x, mask=causal_mask)
     print("输入形状:", x.shape)
     print("输出形状:", out.shape)
