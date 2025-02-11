@@ -6,10 +6,9 @@
 
 **如果您认为本教程对您的学业或事业有所帮助，愿意给我打赏以赞助我后续的教程和开源项目，欢迎通过下列链接给予赞助。** 
 
-[\[赞助\]](https://kaihuatang.github.io/donate.html)      [(备注有名称的赞助者会列在该赞助列表上)](https://kaihuatang.github.io/supporters.html)
+[\[赞助\]](https://kaihuatang.github.io/donate.html)      [(赞助者列表)](https://kaihuatang.github.io/supporters.html)
 
 ## 前言
-作为大语言模型中核心的核心，我将注意力模块排在了其他模块之前放在最前面讲解。我们在本章里会从其原理，结构，各种优化版本讲到目前主流开源大语言模型的具体代码。但本章节仅限于对注意力结构本身原理的阐述，并不会太涉及优化，比如目前主流的[FlashAttention-v1/v2/v3](https://github.com/Dao-AILab/flash-attention)或者一些[线性注意力架构](https://arxiv.org/abs/2401.04658)，这些要么就是基于硬件做的数学等价优化，要么就是完全改变了传统注意力计算形式尚没有被主流认可。不过我相信只要打好基础，做到能逐行代码地理解目前主流大语言模型的所有细节，后续当读者们再看这些进阶知识时，也会更容易理解他们的原理。
 
 ## 一. 注意力原理
 
