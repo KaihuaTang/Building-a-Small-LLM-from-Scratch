@@ -2,11 +2,9 @@
 
 申明：本教程的所有内容(文字，图片，代码等)可以用于非盈利目的个人使用和分享。但如果用于盈利目的，包括但不限于卖课，公众号，视频号等需要经由作者的批准。谢谢理解。[\[知乎链接\]](https://zhuanlan.zhihu.com/p/19275166926)
 
-[\[主目录链接\]](https://github.com/KaihuaTang/All-you-need-to-know-about-LLM)
+[\[主目录链接\]](https://github.com/KaihuaTang/All-you-need-to-know-about-LLM#章节链接)
 
-**如果您认为本教程对您的学业或事业有所帮助，愿意给我打赏以赞助我后续的教程和开源项目，欢迎通过下列链接给予赞助。** 
-
-[\[赞助\]](https://kaihuatang.github.io/donate.html)      [(赞助者列表)](https://kaihuatang.github.io/supporters.html)
+**如果您认为本教程对您的学业或事业有所帮助，愿意给我打赏以赞助我后续的教程和开源项目，欢迎通过下列链接给予赞助。** [\[赞助\]](https://kaihuatang.github.io/donate.html)      [(赞助者列表)](https://kaihuatang.github.io/supporters.html)
 
 ## 前言
 作为大语言模型中核心的核心，我将注意力模块排在了其他模块之前放在最前面讲解。我们在本章里会从其原理，结构，各种优化版本讲到目前主流开源大语言模型的具体代码(Qwen2/LLaMA3, DeepSeek-V3)。但本章节仅限于对注意力结构本身原理的阐述，并不会太涉及优化，比如目前主流的[FlashAttention-v1/v2/v3](https://github.com/Dao-AILab/flash-attention)或者一些[线性注意力架构](https://arxiv.org/abs/2401.04658)，这些要么就是基于硬件做的数学等价优化，要么就是完全改变了传统注意力计算形式尚没有被主流认可。不过我相信只要理解了注意力结构的基本原理，后续优化相关工作也很容易入门了
@@ -275,7 +273,7 @@ $y_3 = OutLinear( softmax(q_3 @ [k_1,k_2, k_3]^T) @ [v_1,v_2,v_3] )$
 
 注意力模块相关的内容确实比较多，我决定把注意力模型的优化单开一章节，尤其是着重讲一下最近特别火的DeepSeek开源模块对注意力模块的修改。
 
-[\[主目录链接\]](https://github.com/KaihuaTang/All-you-need-to-know-about-LLM)
+[\[主目录链接\]](https://github.com/KaihuaTang/All-you-need-to-know-about-LLM#章节链接)
 
 
 
