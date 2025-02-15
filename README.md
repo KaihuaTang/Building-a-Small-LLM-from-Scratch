@@ -21,6 +21,7 @@
 
 1. [大语言模型结构概览](chapter1/README.md)
 2. [注意力模块与KV Cache](chapter2/README.md)
+3. [DeepSeekV3的注意力优化](chapter3/README.md)
 3. 旋转位置编码 (待更新)
 4. 前馈网络 (待更新)
 5. 归一化层 (待更新)

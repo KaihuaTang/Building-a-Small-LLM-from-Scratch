@@ -1,4 +1,4 @@
-# 01大语言模型结构概览
+# 01 大语言模型结构概览
 
 申明：本教程的所有内容(文字，图片，代码等)可以用于非盈利目的个人使用和分享。但如果用于盈利目的，包括但不限于卖课，公众号，视频号等需要经由作者的批准。谢谢理解。
 
@@ -90,6 +90,9 @@ token在输出层的输出会用于预测其相邻的下一个token。具体的�
 
 而Prefill-Decode和Encoder-Decoder的本质区别我认为是在于Prefill-Decode的等价性。上面我们也说了，大语言模型的Prefill和Decode在计算上是等价的，Decode过程也可以数学上写成或代码上实现成Prefill的形式，只是因为Decode阶段用KV Cache做加速更高效，所以才让他们看似走了不同的计算流程。
 
+---------
+
+[\[主目录链接\]](https://github.com/KaihuaTang/All-you-need-to-know-about-LLM)
 
 ## 引用链接
 
