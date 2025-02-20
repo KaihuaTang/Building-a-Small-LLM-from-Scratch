@@ -4,7 +4,6 @@
 
 [\[主目录链接\]](https://github.com/KaihuaTang/All-you-need-to-know-about-LLM#章节链接)
 
-**如果您认为本教程对您的学业或事业有所帮助，愿意给我打赏以赞助我后续的教程和开源项目，欢迎通过下列链接给予赞助。** [\[赞助\]](https://kaihuatang.github.io/donate.html)      [(赞助者列表)](https://kaihuatang.github.io/supporters.html)
 
 ## 前言
 在具体深入了解每个网络模块之前，让我们先整体了解一下一个主流大语言模型的网络结构都有哪些组成部分。这里的主流结构主要是指的Qwen系列，LLaMA系列和DeepSeek系列等。最近比较火的国产DeepSeek大模型虽然对注意力模块(Attention)和前馈网络(FFN)的设计有调整，但整体架构依然符合我们图1所示的主流结构，在之后的章节中我也会把DeepSeek的改进作为拓展知识进行简单的介绍。在本系列中，为了不至于偏离主题陷入无止境背景知识罗列，我会本着**2大原则**
