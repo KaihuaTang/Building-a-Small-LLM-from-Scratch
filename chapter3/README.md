@@ -123,7 +123,7 @@ V = V.repeat(1, 1, self.num_heads // self.num_groups, 1, 1).view(batch_size, seq
 ```
 @misc{tang2025all,
 title = {Building a Small LLM from Scratch: a tutorial},
-author = {Tang, Kaihua},
+author = {Tang, Kaihua and Zhang, Huaizheng},
 year = {2025},
 note = {\url{https://github.com/KaihuaTang/Building-a-Small-LLM-from-Scratch}},
 }
