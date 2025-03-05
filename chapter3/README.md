@@ -7,7 +7,7 @@
 
 
 ## 前言
-书接上文[注意力模块与KV Cache](chapter2/README.md)，介绍完了基本的大语言模型的注意力模块与相关的KV-Cache，我们本章着重展开讲讲主流开源大模型注意力模块的后续改良与优化。本章我们不仅会介绍最近当红的[DeepSeek-V3](https://github.com/deepseek-ai/DeepSeek-V3)注意力优化原理，更会直接深扒一下Qwen2/LLaMA3和DeepSeekV3具体的注意力模块的代码，深入讲解每一行代码对应的功能和原理。
+书接上文[注意力模块与KV Cache](chapter2/README.md)，介绍完了基本的大语言模型的注意力模块与相关的KV-Cache，我们本章着重展开讲讲主流开源大模型注意力模块的后续改良与优化。本章我们不仅会介绍最近当红的[DeepSeek-V3](https://github.com/deepseek-ai/DeepSeek-V3)注意力优化原理，更会直接深扒一下Qwen2/LLaMA3和DeepSeekV3具体的注意力模块的代码，深入讲解每一行代码对应的功能和原理。(DeepSeek太火了，被拉回国项目攻关了，更新耽误了两周)
 
 ## 一. 注意力优化
 主流的开源大模型网络的注意力计算机制除了上一章介绍的多头注意力Multi-Head Attention(MHA)以外，最近也有了新的变种，主要包括Multi-Query Attention (MQA)，Grouped-Query Attention (GQA)和最近当红的DeepSeek的Multi-head Latent Attention (MLA)而他们优化的方向其实是一致的，就是极致的压缩KV的大小，因为这样KV-Cache可以加载的更快。毕竟现在都在说超长上下文，token数N长了KV-Cache优化后加载KV的传输带宽开销可也不小啊。
@@ -19,9 +19,89 @@
 
 ### 1. Multi-Query Attention (MQA) / 多查询注意力
 
+参考上一章的标准多头注意力Multi-Head Attention(MHA)的代码，其QKV构成如下：
+```
+# x为attention模块输入的所有token的hidden states
+batch_size, seq_len, input_dim = x.shape
+
+# 线性变换得到 Q, K, V
+Q = self.query(x)    
+K = self.key(x)
+V = self.value(x)
+
+# 多头展开
+# 变换后形状: [batch_size, seq_len, num_heads, head_dim]
+Q = Q.view(batch_size, seq_len, self.num_heads, self.head_dim)
+K = K.view(batch_size, seq_len, self.num_heads, self.head_dim)
+V = V.view(batch_size, seq_len, self.num_heads, self.head_dim)
+
+# 此处省略后续attention计算
+```
+其中K和V对应的线性层self.key和self.value都必须将token的特征从input_dim维度映射到num_heads * head_dim维度。也就是说这两层的线性层权重的张量形状为[num_heads * head_dim, input_dim]。而同时KV Cache也必须存储两个[batch_size, seq_len, num_heads, head_dim]大小的张量。
+
+而多查询注意力Multi-Query Attention (MQA)做的优化直白来来讲就是只对Query做多头注意力，而Key和Query只生成单头。此时self.key和self.value线性层权重的张量形状为[head_dim, input_dim]，这不仅让线性层计算量缩小num_head倍，KV Cache的大小也缩小了同样的倍数，计算量和带宽双收益。当然天下没有免费的午餐，由于Key和Value仅有一个头，其表达能力肯定是有所损失的。具体MQA参考代码如下：
+
+```
+# x为attention模块输入的所有token的hidden states
+batch_size, seq_len, input_dim = x.shape
+
+# 线性变换得到 Q, K, V
+Q = self.query(x)
+K = self.key(x)        # 注意此处的key线性层输出维度小于MHA
+V = self.value(x)      # 注意此处的key线性层输出维度小于MHA
+
+# 多头展开
+Q = Q.view(batch_size, seq_len, self.num_heads, self.head_dim)
+K = K.view(batch_size, seq_len, 1, self.head_dim)
+V = V.view(batch_size, seq_len, 1, self.head_dim)
+
+# 将K和V复制若干份，扩展至: [batch_size, seq_len, num_heads, head_dim]
+K = K.repeat(1, 1, self.num_heads, 1)
+V = V.repeat(1, 1, self.num_heads, 1)
+
+# 此处省略后续attention计算
+```
+
+
 ### 2. Grouped-Query Attention (GQA) / 组查询注意力
 
+正如上文说的，MQA必然带来注意力层表达能力的下降。因此就有了组查询注意力Grouped-Query Attention (GQA)，这其实是MHA和MQA的折中，就是Query保留所有head数的情况下，Key和Value不止一个头，而是保留num_group数的头(num_groups <= num_heads且num_heads可以被num_groups整除)，我们不难发现GQA是MHA和MQA的一种泛化形式，num_groups=1时就是MQA，num_groups=num_heads时就是MHA。可以说是万金油的表达形式。因为GQA是更泛化的表达形式，同时也有个额外的参数num_groups（有的代码中也叫num_key_value_heads）可以调，因此GQA往往可以调到与MHA差不多的性能，同时又能有KV Cache和线性层计算减少的收益。在主流的Qwen2和LLaMA3的代码中，一般也都支持GQA的配置。
+
+具体GQA参考代码如下：
+```
+# x为attention模块输入的所有token的hidden states
+batch_size, seq_len, input_dim = x.shape
+
+# 线性变换得到 Q, K, V
+Q = self.query(x)
+K = self.key(x)        
+V = self.value(x)      
+
+# 多头展开
+# num_groups <= num_heads且num_heads可以被num_groups整除
+Q = Q.view(batch_size, seq_len, self.num_heads, self.head_dim)
+K = K.view(batch_size, seq_len, 1, self.num_groups, self.head_dim)   
+V = V.view(batch_size, seq_len, 1, self.num_groups, self.head_dim)
+
+# 将K和V复制若干份，扩展至: [batch_size, seq_len, num_heads, head_dim]
+K = K.repeat(1, 1, self.num_heads // self.num_groups, 1, 1).view(batch_size, seq_len, self.num_heads, self.head_dim)
+V = V.repeat(1, 1, self.num_heads // self.num_groups, 1, 1).view(batch_size, seq_len, self.num_heads, self.head_dim)
+
+# 此处省略后续attention计算
+```
+
 ### 3. Multi-head Latent Attention (MLA) / 多头潜在注意力
+
+最近大火的[DeepSeek系列(从V2到V3)](https://github.com/deepseek-ai/DeepSeek-V3/tree/main)则采用了一种比GQA更极致的压缩方式，不仅进一步减少了注意力层中线性层的理论算力，更把KV Cache压缩到了新的境界。在介绍MLA之前，先介绍一个低秩分解在大模型上应用的例子，后面我们可能也会单独详细讲讲，就是[LoRA: Low-Rank Adaptation](https://arxiv.org/abs/2106.09685)。这是大模型常用的一种高性能微调方法，其具体概念就是，如果线性层的权重$W$太大(假设其张量形状为[out_dim, in_dim])，训练这个权重太耗显存了，我们可以训练两个更小的权重$W_a$和$W_b$(形状分别为[K, in_dim]和[out_dim, K]，K << in_dim, K << out_dim)。由于K远远小于in_dim和out_dim，这两个权重加起来也远远小于原始的$W$。参考概念如下图2。
+
+<div align="center">
+    <img src="03-2.png" alt="logo" width="100%"  style="padding-bottom: 20px"/>
+    图2：LoRA微调概念图。
+</div>
+
+当我第一次看到DeepSeek的多头潜在注意力Multi-head Latent Attention (MLA)，我首先映入脑袋的便是LoRA，区别是在MLA中并不是额外学两个小的线性权重，而是用直接用两个小的线性权重取代一个完整的线性层。具体MLA的网络结构如下图3（注意MLA在DeepSeek中有两种形式，一种是只有KV的线性层运用了低秩分解，一种是Q和KV都利用了低秩分解，后者也是最近大火的[DeepSeek-V3](https://github.com/deepseek-ai/DeepSeek-V3/tree/main)和[DeepSeek-R1](https://github.com/deepseek-ai/DeepSeek-R1/tree/main)的网络结构，因此我们这里以后者为例）。
+
+施工中
 
 
 ## 二. 大语言模型中的注意力
