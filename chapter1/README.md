@@ -118,9 +118,9 @@ token在输出层的输出会用于预测其相邻的下一个token。具体的�
 
 ```
 @misc{tang2025all,
-title = {All you need to know about LLM: a LLM tutorial},
+title = {Building a Small LLM from Scratch: a tutorial},
 author = {Tang, Kaihua},
 year = {2025},
-note = {\url{https://github.com/KaihuaTang/All-you-need-to-know-about-LLM}},
+note = {\url{https://github.com/KaihuaTang/Building-a-Small-LLM-from-Scratch}},
 }
 ```

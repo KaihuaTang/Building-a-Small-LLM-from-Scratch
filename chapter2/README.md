@@ -280,9 +280,9 @@ $y_3 = OutLinear( softmax(q_3 @ [k_1,k_2, k_3]^T) @ [v_1,v_2,v_3] )$
 
 ```
 @misc{tang2025all,
-title = {All you need to know about LLM: a LLM tutorial},
+title = {Building a Small LLM from Scratch: a tutorial},
 author = {Tang, Kaihua},
 year = {2025},
-note = {\url{https://github.com/KaihuaTang/All-you-need-to-know-about-LLM}},
+note = {\url{https://github.com/KaihuaTang/Building-a-Small-LLM-from-Scratch}},
 }
 ```
