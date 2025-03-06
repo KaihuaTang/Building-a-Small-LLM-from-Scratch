@@ -101,11 +101,20 @@ V = V.repeat(1, 1, self.num_heads // self.num_groups, 1, 1).view(batch_size, seq
 
 当我第一次看到DeepSeek的多头潜在注意力Multi-head Latent Attention (MLA)，我首先映入脑袋的便是LoRA，区别是在MLA中并不是额外学两个小的线性权重，而是用直接用两个小的线性权重取代一个完整的线性层。具体MLA的网络结构如下图3（注意MLA在DeepSeek中有两种形式，一种是只有KV的线性层运用了低秩分解，一种是Q和KV都利用了低秩分解，后者也是最近大火的[DeepSeek-V3](https://github.com/deepseek-ai/DeepSeek-V3/tree/main)和[DeepSeek-R1](https://github.com/deepseek-ai/DeepSeek-R1/tree/main)的网络结构，因此我们这里以后者为例）。
 
-施工中
+<div align="center">
+    <img src="03-3.png" alt="logo" width="100%"  style="padding-bottom: 20px"/>
+    图3：多头潜在注意力结构，参数规模参考DeepSeek-V3与R1。
+</div>
+
+上图是MLA如何生成Query，Key和Value的流程图。MLA结构中Query和Key都分为nope部分和rope部分，前者是指No Position Embedding即无需位置编码，后者指Rotary Position Embedding即需要旋转位置编码，而旋转位置编码则是图上apply rotary pos embed模块，该模块主要为了给token提供其在序列中与其他token的相对位置信息，下一章我们会展开详细讲解。
+
+我们可以发现，原始的注意力仅需简单的三个Linear加上Reshape就可以生成Query，Key和Value，但MLA似乎让网络变得更复杂了。这是为什么呢？因为MLA利用了低秩分解的概念，将一个大的矩阵乘拆解为两个小的矩阵乘加一个归一化层。我们可以通过参数量估算发现，如果用三个线性层直接生成同样的Query, Key, Value维度，参数量需要扩大6.7倍。
+
+除了参数量的降低，MLA更可以大幅降低KV Cache，如上图DeepSeek-V3与R1网络中，其每个token仅需保留64维的k_pe + 右侧RMSNorm后的512维特征，总计576维每token的Cache即可。因为其余的k_nope和Value都可以直接通过512维的特征再经过一个线性层得到。而此前其他大语言模型每个token需要多少维度的特征呢？以[72B的Qwen2.5](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct/tree/main)模型为例，即便已经使用了组查询注意力GQA，每个token依然需要2048维(128 x 8 x 2)。DeepSeek的MLA将KV Cache压缩了3.5倍，当然这里存的已经不是标准的Key和Value了，需要引入额外的线性层计算才能转换为Key和Value，这就涉及到更复杂的算力和带宽的权衡了。
 
 
 ## 二. 大语言模型中的注意力
-施工中
+下面，让我们切切实实的看一看真实的大模型网络结构里注意力都长什么样。下面我会拿Qwen2/LLaMA3（这两个网络的注意力部分非常相似，因此我仅展示一个）与DeepSeekV3的实际代码进行演示。我会尽可能保留原始代码，仅出于可读性做一些修改，然后通过详细的注释来阐释每一块的作用。
 
 ### 1. Qwen2/LLaMA3的注意力代码详解
 
