@@ -1,6 +1,6 @@
 # 如何从零构建“小”大语言模型
 
--- Build a small LLM from scratch: a tutorial --
+由于个人原因，暂时没有精力更新该项目，向各位等待更新的同学们抱歉了。
 
 <div align="center">
     <img src="assets/cover.png" alt="logo" width="80%"  style="padding-bottom: 20px"/>
